@@ -1,52 +1,39 @@
 import { useEffect, useState } from 'react';
+import { useMutation } from '@apollo/client';
+
+import { client } from './apolloClient';
+import { flowersQuery, createFlowerQuery } from './Queries/flowerQueries';
 
 import logo from './logo.svg';
 import './App.css';
 
-const graphqlFetch = (query) => {
-  return fetch('http://localhost:9001/graphql', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query })
-    }).then(response => response.json());
-}
-
 function App() {
 
   const [flowers, setFlowers] = useState([]);
+  const [createFlowerMutation] = useMutation(createFlowerQuery)
 
   useEffect(() => {
-    const flowersQuery = `{
-      flowers {
-        _id
-        kind
-        petals
-      }
-    }`
-
-    graphqlFetch(flowersQuery)
-      .then(({ data }) => setFlowers(data.flowers));
+    client.query({query: flowersQuery})
+      .then(result => {
+        console.log('flowers result', result);
+        setFlowers(result.data.flowers)
+      });
 
   }, [])
 
   const createFlower = () => {
     const flowerName = "whatever"
     const flowerPetals = 5
-    const createFlowerQuery = `mutation {
-      createFlower(flower: 
-        { kind: "${flowerName}", petals: ${flowerPetals} }
-      ) {
-        _id
-        kind
-        petals
-      }
-    }`
 
-    graphqlFetch(createFlowerQuery)
-      .then(({ data }) => setFlowers([...flowers, data.createFlower]));
+    createFlowerMutation({variables: {
+      kind: "whatever",
+      petals: 5
+    }})
+      .then(result => {
+        console.log('create flower result', result);
+        setFlowers([...flowers, result.data.createFlower])
+      })
+      .catch(error => console.error(error));
   }
 
   return (
